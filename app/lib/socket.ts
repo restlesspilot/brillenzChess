@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
+import { config } from './config'
 
-const SOCKET_URL = 'http://localhost:3001'
+const SOCKET_URL = config.SOCKET_URL
 
 export interface SocketContextType {
   socket: Socket | null
