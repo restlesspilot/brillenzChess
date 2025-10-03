@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  rating    Int      @default(1200)
+  avatar    String?
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  whiteGames Game[] @relation("WhitePlayer")
+  blackGames Game[] @relation("BlackPlayer")
+  sessions   Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Game {
+  id          String    @id @default(cuid())
+  whiteId     String?
+  blackId     String?
+  fen         String    @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  pgn         String?
+  status      GameStatus @default(WAITING)
+  result      GameResult?
+  timeControl Json?
+  rated       Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  // Relationships
+  whitePlayer User? @relation("WhitePlayer", fields: [whiteId], references: [id])
+  blackPlayer User? @relation("BlackPlayer", fields: [blackId], references: [id])
+  moves       Move[]
+
+  @@map("games")
+}
+
+model Move {
+  id        String   @id @default(cuid())
+  gameId    String
+  moveNumber Int
+  san       String
+  fen       String
+  from      String
+  to        String
+  piece     String
+  captured  String?
+  promotion String?
+  flags     String
+  timestamp DateTime @default(now())
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, moveNumber])
+  @@map("moves")
+}
+
+enum GameStatus {
+  WAITING
+  PLAYING
+  PAUSED
+  FINISHED
+}
+
+enum GameResult {
+  WHITE_WINS
+  BLACK_WINS
+  DRAW
+  STALEMATE
+  WHITE_TIMEOUT
+  BLACK_TIMEOUT
+  WHITE_RESIGNATION
+  BLACK_RESIGNATION
+}
