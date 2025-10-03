@@ -1,10 +1,12 @@
 # Multi-stage build for the backend
-FROM node:18-alpine as backend-builder
+FROM node:18-slim as backend-builder
 
 WORKDIR /app
 
-# Install system dependencies including Stockfish
-RUN apk add --no-cache stockfish
+# Install system dependencies and Stockfish
+RUN apt-get update && apt-get install -y \
+    stockfish \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy backend package files
 COPY server/package*.json ./server/
@@ -21,12 +23,15 @@ RUN npx prisma generate
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 
-# Install Stockfish in production image
-RUN apk add --no-cache stockfish
+# Install Stockfish and required libraries
+RUN apt-get update && apt-get install -y \
+    stockfish \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy built backend
 COPY --from=backend-builder /app/server/dist ./server/dist

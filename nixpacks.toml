@@ -1,0 +1,26 @@
+# Railway Nixpacks configuration for BrillenzChess backend
+
+[phases.setup]
+# Install Stockfish through nixpkgs
+nixPkgs = ["stockfish"]
+
+[phases.build]
+# Set working directory to server
+workingDirectory = "server"
+
+[phases.build.cmds]
+# Install dependencies and build
+cmds = [
+  "npm ci",
+  "npx prisma generate",
+  "npm run build"
+]
+
+[start]
+# Start the application
+cmd = "cd server && npm start"
+
+[variables]
+# Default environment variables
+NODE_ENV = "production"
+PORT = "3001"

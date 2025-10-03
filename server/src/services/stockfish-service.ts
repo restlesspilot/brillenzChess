@@ -28,7 +28,27 @@ export class StockfishEngine {
 
   private initializeEngine(): void {
     try {
-      this.process = spawn('stockfish')
+      // Try different possible Stockfish commands
+      const stockfishCommands = ['stockfish', '/usr/bin/stockfish', '/usr/local/bin/stockfish']
+      let engineStarted = false
+
+      for (const command of stockfishCommands) {
+        try {
+          this.process = spawn(command)
+          engineStarted = true
+          console.log(`✅ Stockfish started with command: ${command}`)
+          break
+        } catch (error) {
+          console.log(`❌ Failed to start Stockfish with command: ${command}`)
+          continue
+        }
+      }
+
+      if (!engineStarted || !this.process) {
+        console.warn('⚠️ Stockfish engine not available - AI features will be disabled')
+        this.isReady = false
+        return
+      }
 
       this.process.stdout?.on('data', (data: Buffer) => {
         const output = data.toString().trim()
@@ -47,11 +67,14 @@ export class StockfishEngine {
       this.process.on('error', (error) => {
         console.error('Failed to start Stockfish:', error)
         this.isReady = false
+        this.process = null
       })
 
       this.sendCommand('uci')
     } catch (error) {
       console.error('Error initializing Stockfish:', error)
+      this.isReady = false
+      this.process = null
     }
   }
 
@@ -240,6 +263,11 @@ export class AIPlayer {
   }
 
   async makeMove(chess: Chess): Promise<string | null> {
+    if (!this.engine.isEngineReady()) {
+      console.log('🎲 Stockfish not available, using random move')
+      return this.getRandomMove(chess)
+    }
+
     const settings = this.getDifficultySettings()
 
     try {
@@ -311,7 +339,11 @@ let globalEngine: StockfishEngine | null = null
 export function setupStockfish(): void {
   if (!globalEngine) {
     globalEngine = new StockfishEngine()
-    console.log('🤖 Stockfish engine initialized')
+    if (globalEngine.isEngineReady()) {
+      console.log('🤖 Stockfish engine initialized and ready')
+    } else {
+      console.log('⚠️ Stockfish engine not available - continuing without AI features')
+    }
   }
 }
 
